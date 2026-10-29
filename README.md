@@ -33,6 +33,17 @@ assets/js/config.js    Brand name, email, location, socials, form endpoint
 assets/js/main.js      Interactions (nav, scroll spy, planner, form …)
 ```
 
+## Hero video
+The hero background is our own 12-second storytelling loop in the CI style: **Noise** (ignored ads) → **Signal** (people light up) → **Connection** (lines + ring logo = the match) → **Impact** (ripples). No stock licence needed.
+- Files: `assets/video/hero.webm` (~0.65 MB), `assets/video/hero.mp4` (~1.1 MB, fallback), poster `assets/img/hero-poster.jpg`
+- Source: `tools/hero-video/scene.html` (open it in a browser for a live preview, change colours/timing in the code)
+- Re-render (needs Node, Playwright, ffmpeg):
+  ```bash
+  node tools/hero-video/render.js
+  ```
+- With "reduced motion" or data saver enabled, only the poster is shown, and the video pauses when it is off-screen.
+- To use your own footage instead (e.g. a shoot), just replace the two files in `assets/video/`.
+
 ## Customise
 - **Brand name / email / location / socials:** `assets/js/config.js`. Every `[data-brand]`, `[data-email]` … element updates automatically. For SEO, also replace `[AGENCY NAME]` in the `<title>`/`<meta>` tags of `index.html`.
 - **Contact form:** set `formEndpoint` to a URL that accepts a JSON POST (own API, Formspree, Make/Zapier webhook …). If it's empty, the form opens a pre-filled email (mailto).

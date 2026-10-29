@@ -58,7 +58,11 @@ Two overlapping rings: **Signal Violet** (brand side) and **Volt Lime** (creator
 - Signature effects: text decode (labels), glow follows the cursor, line reveals, particles on connections
 - Always respect `prefers-reduced-motion`: then everything is static and fully visible
 
-## 7. UI components
+## 7. Motion picture (hero video)
+Abstract, not stock footage: particles, lines, light. Storyline: noise → signal → connection → impact.
+Colours only from the palette; Volt Lime appears only at the moment of the match. Loop 12 s, seamless, no sound.
+
+## 8. UI components
 - **Buttons:** pill shape. Volt = primary action, Ghost = secondary
 - **Cards:** radius 20–28 px, a fine 1 px line, glass only where it adds depth
 - **Labels:** mono, uppercase, often with a leading line (`—— CHAPTER 03`)

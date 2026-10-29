@@ -1,0 +1,208 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Hero video scene</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
+<style>
+  html, body { margin: 0; background: #07070B; overflow: hidden; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="c" width="1600" height="900"></canvas>
+<script>
+/*
+  Hero storytelling loop — 12 s, seamless.
+  0–3 s  NOISE       grey particles drift, "AD" frames flicker (ignored advertising)
+  3–6 s  SIGNAL      particles gather into glowing people-nodes
+  6–9 s  CONNECTION  lines connect the nodes, pulses travel, the two-ring mark forms (the match)
+  9–12 s IMPACT      ripples spread from the match, everything dissolves back into the loop
+  draw(t) is deterministic: render.js calls it frame by frame.
+  Open this file in a browser to preview it live.
+*/
+const W = 1600, H = 900, LOOP = 12, TAU = Math.PI * 2;
+const ctx = document.getElementById("c").getContext("2d");
+
+const C = { void: "#07070B", violet: [123, 97, 255], cyan: [77, 227, 255], volt: [214, 255, 61], grey: [108, 108, 130] };
+const rgba = (c, a) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
+const mix = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+const smooth = (e0, e1, x) => { const t = clamp((x - e0) / (e1 - e0)); return t * t * (3 - 2 * t); };
+const env = (t, a, b, c, d) => smooth(a, b, t) * (1 - smooth(c, d, t)); // fade in a→b, out c→d
+
+// seeded PRNG for a stable composition
+let seed = 7;
+const rnd = () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646;
+
+// Nodes = people / creators. Centre = the match (agency).
+const CENTER = { x: 1060, y: 450 };
+const NODES = [
+  { x: 1300, y: 230 }, { x: 1430, y: 520 }, { x: 1240, y: 760 },
+  { x: 860, y: 700 }, { x: 760, y: 300 }, { x: 1010, y: 150 }, { x: 1520, y: 820 },
+];
+
+const particles = Array.from({ length: 230 }, (_, i) => {
+  const node = i % NODES.length;
+  return {
+    bx: rnd() * W, by: rnd() * H,
+    ax: 20 + rnd() * 70, ay: 20 + rnd() * 60,
+    ph: rnd() * TAU, ph2: rnd() * TAU,
+    k: 1 + Math.floor(rnd() * 2),          // integer frequency keeps the loop seamless
+    r: 0.8 + rnd() * 2.0,
+    node, orbit: 10 + rnd() * 56, oa: rnd() * TAU,
+    delay: rnd() * 0.9,
+    hue: rnd(),
+  };
+});
+
+const ads = Array.from({ length: 6 }, () => ({
+  x: 120 + rnd() * 1100, y: 80 + rnd() * 680, w: 120 + rnd() * 110, h: 70 + rnd() * 60, f: 3 + Math.floor(rnd() * 5), ph: rnd() * TAU,
+}));
+
+function aura(x, y, r, col, a) {
+  const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+  g.addColorStop(0, rgba(col, a));
+  g.addColorStop(1, rgba(col, 0));
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+}
+
+function draw(t) {
+  t = ((t % LOOP) + LOOP) % LOOP;
+  const p = t / LOOP;               // 0..1 loop phase
+  const gather = env(t, 2.6, 5.4, 9.4, 11.8);
+  const connect = env(t, 5.6, 7.6, 9.6, 11.4);
+  const noise = 1 - smooth(2.2, 4.6, t) + smooth(10.8, 12, t);
+
+  // background + moving aura light
+  ctx.globalCompositeOperation = "source-over";
+  ctx.fillStyle = C.void;
+  ctx.fillRect(0, 0, W, H);
+  ctx.globalCompositeOperation = "lighter";
+  aura(900 + Math.cos(p * TAU) * 220, 260 + Math.sin(p * TAU) * 120, 720, C.violet, 0.22 + 0.16 * gather);
+  aura(1350 + Math.sin(p * TAU) * 160, 700 + Math.cos(p * TAU) * 90, 560, C.cyan, 0.08 + 0.10 * connect);
+  aura(CENTER.x, CENTER.y, 380, C.volt, 0.05 * connect);
+
+  // 1 — NOISE: flickering ad frames
+  ctx.globalCompositeOperation = "source-over";
+  ctx.font = "500 13px 'JetBrains Mono', monospace";
+  ads.forEach((a) => {
+    const flick = 0.5 + 0.5 * Math.sin(p * TAU * a.f + a.ph);
+    const alpha = noise * (0.14 + 0.2 * flick);
+    if (alpha < 0.005) return;
+    ctx.strokeStyle = rgba(C.grey, alpha * 1.6);
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 6]);
+    ctx.strokeRect(a.x, a.y, a.w, a.h);
+    ctx.setLineDash([]);
+    ctx.fillStyle = rgba(C.grey, alpha * 2);
+    ctx.fillText("AD", a.x + 10, a.y + 20);
+    ctx.fillText("SKIP ›", a.x + a.w - 56, a.y + a.h - 10);
+  });
+
+  // 3 — CONNECTION lines (drawn under particles)
+  NODES.forEach((n, i) => {
+    const start = 5.8 + i * 0.22;
+    const prog = smooth(start, start + 1.1, t) * (1 - smooth(9.8, 11.2, t));
+    if (prog <= 0.001) return;
+    const x2 = CENTER.x + (n.x - CENTER.x) * prog, y2 = CENTER.y + (n.y - CENTER.y) * prog;
+    const g = ctx.createLinearGradient(CENTER.x, CENTER.y, n.x, n.y);
+    g.addColorStop(0, rgba(C.violet, 0.85 * connect));
+    g.addColorStop(1, rgba(C.cyan, 0.85 * connect));
+    ctx.strokeStyle = g;
+    ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.moveTo(CENTER.x, CENTER.y); ctx.lineTo(x2, y2); ctx.stroke();
+    // volt pulses travelling outwards
+    if (prog > 0.98) {
+      for (let k = 0; k < 2; k++) {
+        const u = ((t * 0.55 + i * 0.13 + k * 0.5) % 1);
+        const px = CENTER.x + (n.x - CENTER.x) * u, py = CENTER.y + (n.y - CENTER.y) * u;
+        ctx.fillStyle = rgba(C.volt, connect);
+        ctx.shadowColor = rgba(C.volt, 1); ctx.shadowBlur = 14;
+        ctx.beginPath(); ctx.arc(px, py, 3, 0, TAU); ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+    }
+  });
+
+  // particles: drift (noise) → orbit their node (signal)
+  ctx.globalCompositeOperation = "lighter";
+  particles.forEach((q) => {
+    const dx = q.bx + Math.sin(p * TAU * q.k + q.ph) * q.ax;
+    const dy = q.by + Math.cos(p * TAU * q.k + q.ph2) * q.ay;
+    const n = NODES[q.node];
+    const ang = q.oa + p * TAU * (q.k % 2 ? 1 : -1);
+    const tx = n.x + Math.cos(ang) * q.orbit, ty = n.y + Math.sin(ang) * q.orbit * 0.8;
+    const w = clamp(gather * 1.25 - q.delay * 0.25);
+    const e = w * w * (3 - 2 * w);
+    const x = dx + (tx - dx) * e, y = dy + (ty - dy) * e;
+    const col = mix(C.grey, q.hue > 0.5 ? C.violet : C.cyan, e);
+    const a = 0.42 + 0.48 * e;
+    ctx.fillStyle = rgba(col, a);
+    ctx.beginPath(); ctx.arc(x, y, q.r * (1 + 0.5 * e), 0, TAU); ctx.fill();
+  });
+
+  // 2 — SIGNAL: node glows + rings
+  ctx.globalCompositeOperation = "source-over";
+  NODES.forEach((n, i) => {
+    const a = env(t, 3.6 + i * 0.12, 5.2 + i * 0.12, 9.6, 11.6);
+    if (a <= 0.001) return;
+    ctx.globalCompositeOperation = "lighter";
+    aura(n.x, n.y, 90, i % 2 ? C.cyan : C.violet, 0.35 * a);
+    ctx.globalCompositeOperation = "source-over";
+    ctx.strokeStyle = rgba([241, 241, 246], 0.55 * a);
+    ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.arc(n.x, n.y, 16 + 4 * Math.sin(p * TAU * 2 + i), 0, TAU); ctx.stroke();
+    ctx.fillStyle = rgba([241, 241, 246], 0.9 * a);
+    ctx.beginPath(); ctx.arc(n.x, n.y, 4, 0, TAU); ctx.fill();
+  });
+
+  // 3b — the match: two rings slide together (logo mark)
+  const ring = env(t, 6.6, 8.2, 10.2, 11.6);
+  if (ring > 0.001) {
+    const sep = 34 * (1 - smooth(7.0, 8.6, t)) + 14;
+    const R = 34 + 6 * ring;
+    ctx.lineWidth = 4;
+    ctx.globalCompositeOperation = "lighter";
+    ctx.shadowBlur = 24;
+    ctx.shadowColor = rgba(C.violet, ring);
+    ctx.strokeStyle = rgba(C.violet, ring);
+    ctx.beginPath(); ctx.arc(CENTER.x - sep, CENTER.y, R, 0, TAU); ctx.stroke();
+    ctx.shadowColor = rgba(C.volt, ring);
+    ctx.strokeStyle = rgba(C.volt, ring);
+    ctx.beginPath(); ctx.arc(CENTER.x + sep, CENTER.y, R, 0, TAU); ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.globalCompositeOperation = "source-over";
+  }
+
+  // 4 — IMPACT: ripples from the match
+  for (let k = 0; k < 3; k++) {
+    const s = 8.4 + k * 0.7;
+    const u = smooth(s, s + 2.6, t);
+    if (u <= 0 || u >= 1) continue;
+    ctx.strokeStyle = rgba(k === 1 ? C.volt : C.violet, (1 - u) * 0.6);
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(CENTER.x, CENTER.y, 40 + u * 720, 0, TAU); ctx.stroke();
+  }
+
+  // gentle vignette
+  const v = ctx.createRadialGradient(W * 0.6, H * 0.5, H * 0.3, W * 0.6, H * 0.5, W * 0.75);
+  v.addColorStop(0, "rgba(7,7,11,0)");
+  v.addColorStop(1, "rgba(7,7,11,0.85)");
+  ctx.fillStyle = v;
+  ctx.fillRect(0, 0, W, H);
+}
+
+window.draw = draw;
+// live preview when opened directly (render.js sets ?render)
+if (!location.search.includes("render")) {
+  const t0 = performance.now();
+  const loop = (now) => { draw((now - t0) / 1000); requestAnimationFrame(loop); };
+  requestAnimationFrame(loop);
+} else {
+  draw(0);
+}
+</script>
+</body>
+</html>

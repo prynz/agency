@@ -309,15 +309,34 @@
     if (!finePointer || reduceMotion) return;
     const hero = $(".hero");
     const img = $(".hero__photo img");
-    const auras = $$(".aura");
+    const video = $("#heroVideo");
     if (!hero || !img) return;
     hero.addEventListener("pointermove", (e) => {
       const nx = e.clientX / innerWidth - 0.5;
       const ny = e.clientY / innerHeight - 0.5;
       img.style.setProperty("--px", `${nx * -18}px`);
       img.style.setProperty("--py", `${ny * -12}px`);
-      auras.forEach((a, i) => (a.style.translate = `${nx * (30 + i * 20)}px ${ny * (30 + i * 20)}px`));
+      video?.style.setProperty("--vx", `${nx * 14}px`);
+      video?.style.setProperty("--vy", `${ny * 10}px`);
     });
+  }
+
+  /* ---------- Hero video: respect reduced motion / data saver, pause off-screen ---------- */
+  function initHeroVideo() {
+    const video = $("#heroVideo");
+    if (!video) return;
+    const saveData = navigator.connection && navigator.connection.saveData;
+    if (reduceMotion || saveData) {
+      video.removeAttribute("autoplay");
+      video.pause();
+      if (saveData) { $$("source", video).forEach((s) => s.remove()); video.load(); }
+      return;
+    }
+    const play = () => video.play().catch(() => { /* autoplay blocked: poster stays visible */ });
+    if ("IntersectionObserver" in window) {
+      new IntersectionObserver(([en]) => (en.isIntersecting ? play() : video.pause()), { threshold: 0.05 }).observe(video);
+    } else play();
+    document.addEventListener("visibilitychange", () => (document.hidden ? video.pause() : play()));
   }
 
   /* ==========================================================================
@@ -950,6 +969,7 @@
   initMagnetic();
   initSpotlight();
   initHeroParallax();
+  initHeroVideo();
   initShift();
   initMatch();
   initVerticals();

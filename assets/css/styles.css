@@ -288,12 +288,18 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
    ========================================================================== */
 .hero { position: relative; min-height: 100svh; padding: calc(var(--header-h) + 48px) 0 40px; overflow: hidden; isolation: isolate; }
 .hero__bg { position: absolute; inset: 0; z-index: -1; pointer-events: none; }
-.aura { position: absolute; border-radius: 50%; filter: blur(80px); opacity: .55; will-change: transform; }
-.aura--1 { width: 620px; height: 620px; left: 42%; top: -10%; background: var(--c-violet); animation: drift1 18s ease-in-out infinite alternate; }
-.aura--2 { width: 460px; height: 460px; right: -6%; top: 30%; background: var(--c-cyan); opacity: .28; animation: drift2 22s ease-in-out infinite alternate; }
-.aura--3 { width: 300px; height: 300px; left: -6%; bottom: 0; background: var(--c-violet); opacity: .22; animation: drift1 26s ease-in-out infinite alternate-reverse; }
-@keyframes drift1 { to { transform: translate(-80px, 60px) scale(1.15); } }
-@keyframes drift2 { to { transform: translate(60px, -80px) scale(.9); } }
+.hero__video {
+  position: absolute; inset: -2%; width: 104%; height: 104%; object-fit: cover; object-position: 62% 50%;
+  background: var(--c-void) url("../img/hero-poster.jpg") center / cover no-repeat;
+  transform: translate3d(var(--vx, 0), var(--vy, 0), 0); transition: transform 1.2s var(--ease);
+}
+.hero__shade {
+  position: absolute; inset: 0;
+  background:
+    linear-gradient(90deg, rgba(7,7,11,.88) 0%, rgba(7,7,11,.6) 32%, rgba(7,7,11,0) 62%),
+    linear-gradient(0deg, var(--c-void) 0%, rgba(7,7,11,0) 28%),
+    linear-gradient(180deg, rgba(7,7,11,.6) 0%, rgba(7,7,11,0) 18%);
+}
 .hud-grid {
   position: absolute; inset: 0;
   background-image: linear-gradient(var(--c-line) 1px, transparent 1px), linear-gradient(90deg, var(--c-line) 1px, transparent 1px);
@@ -336,9 +342,9 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 .path-btn[aria-pressed="true"]::after { content: "✓"; position: absolute; top: 12px; right: 14px; width: 18px; height: 18px; border-radius: 50%; background: var(--c-volt); color: var(--c-ink-l); font-size: 11px; font-weight: 700; display: grid; place-items: center; }
 
 .hero__visual { position: relative; height: clamp(520px, 70vh, 720px); }
-.hero__visual::before { content: ""; position: absolute; inset: 12% 8% 0; border-radius: 50%; background: radial-gradient(circle, rgba(123,97,255,.5), transparent 65%); filter: blur(30px); }
+.hero__visual::before { content: ""; position: absolute; inset: 12% 8% 0; border-radius: 50%; background: radial-gradient(circle, rgba(123,97,255,.28), transparent 65%); filter: blur(30px); }
 .hero__photo {
-  position: absolute; inset: 0; background: transparent;
+  position: absolute; inset: 0; background: transparent; mix-blend-mode: screen;
   -webkit-mask-image: radial-gradient(ellipse 50% 54% at 50% 48%, #000 38%, transparent 92%);
   mask-image: radial-gradient(ellipse 50% 54% at 50% 48%, #000 38%, transparent 92%);
   animation: heroPhoto 1.6s var(--ease) both;
@@ -917,6 +923,8 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
   .header-cta { height: 48px; padding: 0 18px; }
   .hero { padding-top: calc(var(--header-h) + 32px); }
   .hero__grid { grid-template-columns: 1fr; }
+  .hero__shade { background: linear-gradient(180deg, rgba(7,7,11,.5) 0%, rgba(7,7,11,0) 20%, rgba(7,7,11,0) 38%, rgba(7,7,11,.85) 60%, var(--c-void) 100%); }
+  .hero__video { object-position: 66% 30%; height: 70%; }
   .hero__visual { height: clamp(400px, 100vw, 540px); order: -1; margin-top: -24px; }
   .hero__plate { bottom: 0; }
   .hero__copy { margin-top: 12px; position: relative; z-index: 5; }
